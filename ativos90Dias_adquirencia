@@ -1,0 +1,10 @@
+select
+'Mes'							as semana,
+'Ativos Adquirencia 90D'	    as BU,
+    dat_month_reference,
+    count(distinct idt_safepay_user) as cliente
+from dax_share_dax.active_90d_adq
+where dat_month_reference  in ('2026-02-01', '2026-01-01', '2025-12-01', '2025-02-01')
+and date_part('day',dat_month_reference)<= '${diadasemana}'::INT8
+group by 1,2,3
+order by 1;
