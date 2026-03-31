@@ -1,0 +1,12 @@
+select 
+'Mes'							as semana,
+'Ativo 90D'						as BU,
+trunc(date_trunc('month', dat_reference_month)) as mes_reference,
+count(distinct a.idt_safepay_user) as usuario
+from dax_share_dax.active_90d_group a
+--left join dax_share_dax.ent_customer_psp b on a.idt_safepay_user = b.idt_safepay_user 
+--where date_trunc('month',dat_reference_month) in ('2024-05-01','2025-03-01','2025-04-01','2025-05-01')
+where date_trunc('month',dat_reference_month)  in ('2026-02-01', '2026-01-01', '2025-12-01', '2025-02-01')
+and date_part('day',dat_reference_month)<= '${diadasemana}'::INT8
+group by 1,2,3
+order by 3 desc
