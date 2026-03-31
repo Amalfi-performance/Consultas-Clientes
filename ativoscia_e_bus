@@ -1,0 +1,73 @@
+
+
+	--- Ativos Companhia
+	(
+	select 
+		'Ativos Companhia' as grupo,
+		mes_ref,
+		'${qualasemana}' as semana,
+		count (distinct idt_safepay_user) as clientes
+	from(
+			(
+				select
+					distinct a.idt_safepay_user as idt_safepay_user,
+					trunc(date_trunc('month',dat_reference)) as mes_ref
+				from dax_share_dax.analytical_customer_transactions a
+				inner join	dax_share_dax.financial_service_group b on a.idt_financial_service = b.idt_financial_service and b.idt_service_group = 19
+				where mes_ref in ('2026-02-01', '2026-01-01', '2025-12-01', '2025-02-01')
+				--mes_ref >= '2024-01-01'
+				and date_part('day',dat_reference)<= '${diadasemana}'::INT8
+				group by 1,2
+			) 
+			union all 
+			(
+			select
+				distinct a.idt_safepay_user as idt_safepay_user,
+				trunc(date_trunc('month',dat_creation)) as mes_ref 
+			from dax_share_dax.transaction_balance a --select* from dax.transaction_balance limit 10
+			where num_value > 0 
+			and mes_ref in ('2026-02-01', '2026-01-01', '2025-12-01', '2025-02-01')
+			and date_part('day',dat_creation)<= '${diadasemana}'::INT8
+			group BY  1,2
+			)
+	)
+	
+	
+	group by 1,2,3
+	
+	)
+
+	union all 
+	
+	(
+	select 
+	base,
+	trunc(date_trunc('month',mes_uso_parcial)) as dat_mes,
+	'${qualasemana}' as semana,
+	count(distinct idt_safepay_user) as idt_safepay_user
+	from (
+		select -- base de id's
+			distinct cod_customer as idt_safepay_user,
+			date_trunc('month',dat_reference) as mes_uso_parcial,
+			case when idt_service_group = 20 then 'Ativos Banking+Adquirencia'
+				when idt_service_group = 1  then 'Ativos Banking'
+				when idt_service_group = 2  then 'Ativos Rentaveis Banking'
+				when idt_service_group = 3  then 'Ativos Rentaveis Conta Digital'
+				when idt_service_group = 15 then 'Ativos Rentaveis Investimentos'
+				when idt_service_group = 28 then 'Ativos Rentaveis Seguros'
+				when idt_service_group = 25 then 'Ativos Rentaveis Banking+Saldo'
+				when idt_service_group = 27 then 'Ativos Adquirencia'
+				when idt_service_group = 30 then 'Ativos Rentaveis Banking+Adquirencia'
+				when idt_service_group = 29 then 'Saldo Total'
+				when a.idt_financial_service in (91023) then 'Ativos Saldo > 100' 
+				when a.idt_financial_service in (11010,11020,14010,14020,12010,12030,15010,15020) then 'Ativos Rentaveis Cartao Debito'
+				when a.idt_financial_service in (13060,13070,13110,13120,13160,13170,15050,15060) then 'Ativos Rentaveis Cartao Credito' else null end as base
+		from dax_share_dax.analytical_customer_transactions a
+		inner join	dax_share_dax.financial_service_group	 b on a.idt_financial_service = b.idt_financial_service
+		where date_part('day',dat_reference)<= '${diadasemana}'::INT8
+		group by 1,2,3
+		) a		
+	where mes_uso_parcial IN ('2026-02-01', '2026-01-01', '2025-12-01', '2025-02-01')
+	and base is not null
+	group by 1,2,3 order by 2
+	)
