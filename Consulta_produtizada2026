@@ -1,0 +1,10 @@
+---Consulta para Hacka Clientes
+select
+    date_trunc('month', dat_reference) as mes_ref,
+    des_service_group,
+    '${diasamana}' as semana,
+    count(distinct idt_safepay_user) as clientes
+from dax_share_novos_negocios.ent_active_hacka_customer eahe
+where date_part('day', dat_reference) <= '${diasemana}'::INT8
+  and mes_ref in ('2026-02-01', '2026-03-01')
+group by 1,2,3
