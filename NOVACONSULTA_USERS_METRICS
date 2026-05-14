@@ -1,0 +1,119 @@
+----- DADOS MENSAIS DA USERS_METRICS - ACUMULADO MES
+with base_diaria as (
+    select distinct
+        idt_safepay_user,
+        dat_reference,
+        date_trunc('month', dat_reference) as mes_ref,
+        des_service_group,
+        case 
+            when flg_conta_nova = 1 then 'Conta Nova'
+            when flg_retido = 1 then 'Retido'
+            when flg_reativado = 1 then 'Reativado'
+            when flg_novo_no_servico = 1 and flg_conta_nova = 0 then 'Novo no Serviço'
+            else 'NA'
+        end as flgcliente
+    from dax_share_novos_negocios.mvw_groups_users_metrics
+--    where dat_reference between date '2026-03-01' and date '2026-03-31'
+    where date_part('day',dat_reference)<= 31 and mes_ref in ('2026-03-01')--('2026-05-01','2026-04-01','2026-03-01','2025--05-01')
+      and des_service_group in ('Ativos Banking+Adquirência'/*,'Ativos Banking','Ativos Adquirência'*/)
+),
+data_corte as (
+select mes_ref, 
+max(dat_reference) as dat_reference_corte
+from base_diaria
+group by mes_ref
+)
+,entrada_status as (
+    select
+        mes_ref,
+        des_service_group,
+        flgcliente,
+        idt_safepay_user,
+        min(dat_reference) as dat_entrada_status
+    from base_diaria
+    group by
+        mes_ref,
+        des_service_group,
+        flgcliente,
+        idt_safepay_user)
+select dc.dat_reference_corte as dat_reference,
+    e.mes_ref,
+    e.des_service_group,
+    e.flgcliente,
+    count(distinct e.idt_safepay_user) as qtd_clientes_acumulado
+from entrada_status e
+join data_corte dc on dc.mes_ref = e.mes_ref and e.dat_entrada_status <= dc.dat_reference_corte
+group by
+    e.mes_ref,
+    dc.dat_reference_corte,
+    e.des_service_group,
+    e.flgcliente
+order by
+    e.mes_ref,
+    dc.dat_reference_corte,
+    e.des_service_group,
+    e.flgcliente
+
+
+---- USERS_METRICS COM ABERTURAS DIÁRIAS ACUMULADAS ATÉ A DATA
+with base_diaria as (
+    select distinct
+        idt_safepay_user,
+        dat_reference,
+        date_trunc('month', dat_reference) as mes_ref,
+        des_service_group,
+        case 
+            when flg_conta_nova = 1 then 'Conta Nova'
+            when flg_retido = 1 then 'Retido'
+            when flg_reativado = 1 then 'Reativado'
+            when flg_novo_no_servico = 1 and flg_conta_nova = 0 then 'Novo no Serviço'
+            else 'NA'
+        end as flgcliente
+    from dax_share_novos_negocios.mvw_groups_users_metrics
+--    where dat_reference between date '2026-03-01' and date '2026-03-31'
+    where date_part('day',dat_reference)<= '${diadasemana}'::INT8 and mes_ref in ('2026-04-01')--('2026-05-01','2026-04-01','2026-03-01','2025--05-01')
+      and des_service_group in ('Ativos Banking+Adquirência'/*,'Ativos Banking','Ativos Adquirência'*/)
+)
+,entrada_status as (
+    select
+        mes_ref,
+        des_service_group,
+        flgcliente,
+        idt_safepay_user,
+        min(dat_reference) as dat_entrada_status
+    from base_diaria
+    group by
+        mes_ref,
+        des_service_group,
+        flgcliente,
+        idt_safepay_user)
+select max(d.dat_reference),
+    e.mes_ref,
+    e.des_service_group,
+    e.flgcliente,
+    count(distinct e.idt_safepay_user) as qtd_clientes_acumulado
+from entrada_status e
+join (
+    select distinct
+        dat_reference,
+        date_trunc('month', dat_reference) as mes_ref
+    from base_diaria
+) d
+    on d.mes_ref = e.mes_ref
+   and e.dat_entrada_status <= d.dat_reference 
+group by
+    e.mes_ref,
+    d.dat_reference,
+    e.des_service_group,
+    e.flgcliente
+order by
+    e.mes_ref,
+    d.dat_reference,
+    e.des_service_group,
+    e.flgcliente
+
+
+
+
+
+    
